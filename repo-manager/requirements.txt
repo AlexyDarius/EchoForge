@@ -1,0 +1,11 @@
+# Core dependencies for the Repo Manager GUI application
+# Tkinter is included with Python standard library, so no external dependency needed
+
+# For JSON handling and data validation (optional but recommended)
+jsonschema==4.20.0
+
+# For better date handling
+python-dateutil==2.8.2
+
+# For configuration management
+configparser==6.0.0 
