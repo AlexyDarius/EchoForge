@@ -7,7 +7,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, scrolledtext
 import json
 import os
-from typing import Dict, List, Any, Optional
+import glob
+from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 
 
@@ -22,12 +23,22 @@ class RepoManager:
         self.current_idea: Optional[Dict[str, Any]] = None
         self.repo_file_path = "../data/REPOSITORY/repo.json"
         
+        # Source data paths
+        self.json_logs_path = "../data/json-logs"
+        self.md_logs_path = "../data/md-logs"
+        self.source_data: Dict[str, Dict[str, Any]] = {}
+        
         # Load data
         self.load_repo_data()
+        self.load_source_data()
         
         # Create GUI
         self.create_widgets()
         self.refresh_idea_list()
+        
+        # Update status with source data info
+        source_weeks = len(self.source_data)
+        self.status_var.set(f"Ready - Loaded {len(self.repo_data)} ideas and {source_weeks} weeks of source data")
 
     def load_repo_data(self):
         """Load repository data from JSON file"""
@@ -53,6 +64,98 @@ class RepoManager:
             messagebox.showinfo("Success", "Repository data saved successfully!")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save repository data: {str(e)}")
+
+    def load_source_data(self):
+        """Load source data from JSON logs and markdown files"""
+        try:
+            # Load JSON logs
+            json_files = glob.glob(os.path.join(self.json_logs_path, "*.json"))
+            for json_file in json_files:
+                week = os.path.basename(json_file).replace('.json', '')
+                with open(json_file, 'r', encoding='utf-8') as f:
+                    self.source_data[week] = json.load(f)
+            
+            # Load markdown logs
+            md_files = glob.glob(os.path.join(self.md_logs_path, "*.md"))
+            for md_file in md_files:
+                week = os.path.basename(md_file).replace('.md', '')
+                if week not in self.source_data:
+                    self.source_data[week] = {}
+                with open(md_file, 'r', encoding='utf-8') as f:
+                    self.source_data[week]['markdown'] = f.read()
+                    
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load source data: {str(e)}")
+
+    def get_source_information(self, idea: Dict[str, Any]) -> str:
+        """Get all source information for a given idea"""
+        if not idea:
+            return "No idea selected"
+        
+        related_items = idea.get('related_items', [])
+        if not related_items:
+            return f"No source information found for idea: {idea.get('idea_id', 'Unknown')}"
+        
+        source_info = []
+        source_info.append(f"# Source Information for: {idea.get('title', 'Unknown Idea')}")
+        source_info.append(f"Idea ID: {idea.get('idea_id', 'Unknown')}")
+        source_info.append("=" * 60)
+        source_info.append("")
+        
+        # Group items by week to avoid repetition
+        weeks_data = {}
+        for item in related_items:
+            week = item.get('week', 'Unknown')
+            if week not in weeks_data:
+                weeks_data[week] = []
+            weeks_data[week].append(item)
+        
+        for week, items in weeks_data.items():
+            source_info.append(f"## Week: {week}")
+            source_info.append("")
+            
+            if week in self.source_data:
+                week_data = self.source_data[week]
+                
+                # Add metadata once per week
+                if 'metadata' in week_data:
+                    source_info.append("### Week Metadata:")
+                    source_info.append(f"- Tools Used: {', '.join(week_data['metadata'].get('tools_used', []))}")
+                    source_info.append(f"- Tags: {', '.join(week_data['metadata'].get('tags', []))}")
+                    source_info.append(f"- Generated: {week_data['metadata'].get('generated_at', 'Unknown')}")
+                    source_info.append("")
+                
+                # Add all JSON sources for this week
+                source_info.append("### JSON Sources:")
+                source_info.append("")
+                
+                for item in items:
+                    item_id = item.get('item_id', 'Unknown')
+                    section = item.get('section', 'Unknown')
+                    
+                    source_info.append(f"**Item: {item_id} | Section: {section}**")
+                    
+                    # Find the specific item in JSON data
+                    if 'items' in week_data and section in week_data['items']:
+                        items_data = week_data['items'][section]
+                        for item_data in items_data:
+                            if item_data.get('id') == item_id:
+                                source_info.append("```json")
+                                source_info.append(json.dumps(item_data, indent=2, ensure_ascii=False))
+                                source_info.append("```")
+                                source_info.append("")
+                                break
+                    else:
+                        source_info.append(f"⚠️ Item {item_id} not found in section {section}")
+                        source_info.append("")
+            else:
+                source_info.append(f"⚠️ No source data found for week: {week}")
+                source_info.append("")
+            
+            source_info.append("-" * 40)
+            source_info.append("")
+        
+        return "\n".join(source_info)
 
     def create_widgets(self):
         """Create the main GUI widgets"""
@@ -170,7 +273,8 @@ class RepoManager:
         
         ttk.Button(buttons_frame, text="Save Changes", command=self.save_idea).pack(side=tk.LEFT, padx=(0, 10))
         ttk.Button(buttons_frame, text="Clear Form", command=self.clear_form).pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Button(buttons_frame, text="Save to File", command=self.save_repo_data).pack(side=tk.LEFT)
+        ttk.Button(buttons_frame, text="Save to File", command=self.save_repo_data).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(buttons_frame, text="View Sources", command=self.show_source_information).pack(side=tk.LEFT)
         
         # Status bar
         self.status_var = tk.StringVar()
@@ -333,6 +437,63 @@ class RepoManager:
             self.clear_form()
             self.refresh_idea_list()
             self.status_var.set(f"Deleted idea: {idea_id}")
+
+    def show_source_information(self):
+        """Show source information for the current idea in a new window"""
+        if not self.current_idea:
+            messagebox.showwarning("Warning", "No idea selected!")
+            return
+        
+        # Create new window
+        source_window = tk.Toplevel(self.root)
+        source_window.title(f"Source Information - {self.current_idea.get('title', 'Unknown Idea')}")
+        source_window.geometry("1000x800")
+        
+        # Configure window
+        source_window.columnconfigure(0, weight=1)
+        source_window.rowconfigure(0, weight=1)
+        
+        # Create main frame
+        main_frame = ttk.Frame(source_window, padding="10")
+        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.rowconfigure(1, weight=1)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text="Source Information", font=("Arial", 14, "bold"))
+        title_label.grid(row=0, column=0, pady=(0, 10))
+        
+        # Text area with scrollbar
+        text_frame = ttk.Frame(main_frame)
+        text_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        text_frame.columnconfigure(0, weight=1)
+        text_frame.rowconfigure(0, weight=1)
+        
+        # Text widget
+        text_widget = scrolledtext.ScrolledText(text_frame, wrap=tk.WORD, font=("Consolas", 10))
+        text_widget.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Get source information
+        source_text = self.get_source_information(self.current_idea)
+        text_widget.insert(tk.END, source_text)
+        text_widget.config(state=tk.DISABLED)  # Make read-only
+        
+        # Buttons frame
+        buttons_frame = ttk.Frame(main_frame)
+        buttons_frame.grid(row=2, column=0, pady=(10, 0))
+        
+        # Copy button
+        def copy_to_clipboard():
+            source_window.clipboard_clear()
+            source_window.clipboard_append(source_text)
+            messagebox.showinfo("Copied", "Source information copied to clipboard!")
+        
+        ttk.Button(buttons_frame, text="Copy to Clipboard", command=copy_to_clipboard).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(buttons_frame, text="Close", command=source_window.destroy).pack(side=tk.LEFT)
+        
+        # Status
+        status_label = ttk.Label(main_frame, text=f"Showing source information for: {self.current_idea.get('idea_id')}")
+        status_label.grid(row=3, column=0, pady=(10, 0))
 
 
 def main():

@@ -15,6 +15,7 @@ A Python Tkinter GUI application for managing your EchoForge idea repository (`r
 - **Delete Ideas**: Remove ideas with confirmation
 - **Save Changes**: Save modifications to the repository file
 - **Real-time Updates**: See changes immediately in the interface
+- **View Sources**: Link back to original source information from JSON logs and markdown files
 
 ## Project Structure
 
@@ -105,6 +106,7 @@ python repo_manager.py
   - **Trend**: Market/trend relevance (1-10)
 - **Tags**: Comma-separated list of tags
 - **Related Items**: JSON array of related items (week, item_id, section)
+- **View Sources**: Button to see all original source information from JSON logs and markdown files
 
 ### Working with Ideas
 
@@ -122,10 +124,30 @@ python repo_manager.py
 3. Click "Save Changes" to update the idea
 4. Click "Save to File" to persist changes to disk
 
+#### Viewing Source Information
+1. Select an idea from the left panel
+2. Click "View Sources" button
+3. A new window opens showing:
+   - Original JSON source data for each related item
+   - Full markdown context from the week
+   - Week metadata (tools used, tags, generation date)
+4. Use "Copy to Clipboard" to copy the source information
+
 #### Deleting an Idea
 1. Select the idea to delete
 2. Click "Delete" button
 3. Confirm the deletion in the dialog
+
+### Source Information Linking
+
+The application automatically links ideas to their source information:
+
+- **JSON Logs**: Loads all `*.json` files from `../data/json-logs/`
+- **Markdown Logs**: Loads all `*.md` files from `../data/md-logs/`
+- **Related Items**: Each idea's `related_items` array links to specific items in the source data
+- **Context Preservation**: Shows both the specific item and full week context
+
+This ensures you never lose the original source information when generating content from ideas.
 
 ### Data Format
 

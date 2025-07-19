@@ -26,6 +26,7 @@ python run.py
 ✅ **Edit Everything**: Title, description, scores, tags, related items  
 ✅ **Save Changes**: Persist modifications to your repo.json  
 ✅ **Delete Ideas**: Remove ideas with confirmation  
+✅ **View Sources**: Link back to original source information from JSON and markdown logs  
 
 ## 🎯 Key Features
 
@@ -34,6 +35,8 @@ python run.py
 - **Score Sliders**: Easy adjustment of maturity, interest, and trend scores
 - **JSON Support**: Full support for related items in JSON format
 - **Auto-save**: Prompts to save when closing
+- **Source Linking**: Automatic linking to original JSON logs and markdown files
+- **Content Generation Ready**: Preserve all source information for content creation
 
 ## 🔧 Troubleshooting
 
