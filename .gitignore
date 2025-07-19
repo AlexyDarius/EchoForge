@@ -295,3 +295,7 @@ docker-compose.override.yml
 # Local development
 .local/
 local/ 
+
+# Content & Private
+about-user.md
+/data
