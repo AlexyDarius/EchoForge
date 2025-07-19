@@ -26,6 +26,7 @@ class RepoManager:
         # Source data paths
         self.json_logs_path = "../data/json-logs"
         self.md_logs_path = "../data/md-logs"
+        self.evaluations_path = "../data/evaluations"
         self.source_data: Dict[str, Dict[str, Any]] = {}
         
         # Load data
@@ -157,6 +158,251 @@ class RepoManager:
         
         return "\n".join(source_info)
 
+    def get_assessment_file_path(self, idea_id: str, assessment_type: str) -> str:
+        """Get the file path for an assessment file"""
+        return os.path.join(self.evaluations_path, f"{idea_id}_{assessment_type}.json")
+
+    def load_assessment(self, idea_id: str, assessment_type: str) -> Optional[Dict[str, Any]]:
+        """Load an assessment file for an idea"""
+        file_path = self.get_assessment_file_path(idea_id, assessment_type)
+        try:
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load {assessment_type} assessment: {str(e)}")
+        return None
+
+    def save_assessment(self, idea_id: str, assessment_type: str, assessment_data: Dict[str, Any]):
+        """Save an assessment file for an idea"""
+        try:
+            # Ensure directory exists
+            os.makedirs(self.evaluations_path, exist_ok=True)
+            
+            file_path = self.get_assessment_file_path(idea_id, assessment_type)
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(assessment_data, f, indent=2, ensure_ascii=False)
+            
+            messagebox.showinfo("Success", f"{assessment_type.title()} assessment saved successfully!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save {assessment_type} assessment: {str(e)}")
+
+    def upload_assessment(self, assessment_type: str):
+        """Upload an assessment file for the current idea"""
+        if not self.current_idea:
+            messagebox.showwarning("Warning", "No idea selected!")
+            return
+        
+        idea_id = self.current_idea.get('idea_id')
+        if not idea_id:
+            messagebox.showerror("Error", "Idea ID is required!")
+            return
+        
+        # Create assessment input dialog
+        self.show_assessment_input_dialog(idea_id, assessment_type)
+
+    def show_assessment_input_dialog(self, idea_id: str, assessment_type: str):
+        """Show dialog for assessment input (file upload or paste)"""
+        # Create dialog window
+        dialog = tk.Toplevel(self.root)
+        dialog.title(f"Add {assessment_type.title()} Assessment - {idea_id}")
+        dialog.geometry("600x500")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        # Configure window
+        dialog.columnconfigure(0, weight=1)
+        dialog.rowconfigure(1, weight=1)
+        
+        # Create main frame
+        main_frame = ttk.Frame(dialog, padding="10")
+        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.rowconfigure(1, weight=1)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text=f"Add {assessment_type.title()} Assessment", font=("Arial", 12, "bold"))
+        title_label.grid(row=0, column=0, pady=(0, 10))
+        
+        # Input method selection
+        method_frame = ttk.LabelFrame(main_frame, text="Input Method", padding="10")
+        method_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        
+        # File upload button
+        def upload_file():
+            file_path = filedialog.askopenfilename(
+                title=f"Select {assessment_type.title()} Assessment JSON",
+                filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+            )
+            
+            if file_path:
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    text_widget.delete(1.0, tk.END)
+                    text_widget.insert(1.0, content)
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to read file: {str(e)}")
+        
+        ttk.Button(method_frame, text="📁 Upload JSON File", command=upload_file).pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Clear button
+        def clear_text():
+            text_widget.delete(1.0, tk.END)
+        
+        ttk.Button(method_frame, text="🗑️ Clear", command=clear_text).pack(side=tk.LEFT)
+        
+        # JSON input area
+        input_frame = ttk.LabelFrame(main_frame, text=f"Paste {assessment_type.title()} Assessment JSON", padding="10")
+        input_frame.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
+        input_frame.columnconfigure(0, weight=1)
+        input_frame.rowconfigure(0, weight=1)
+        
+        # Text widget for JSON input
+        text_widget = scrolledtext.ScrolledText(input_frame, wrap=tk.WORD, font=("Consolas", 10), height=15)
+        text_widget.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Instructions
+        instructions = f"""Paste your {assessment_type} assessment JSON here, or upload a file above.
+
+Required fields for {assessment_type} assessment:
+"""
+        if assessment_type == "trend":
+            instructions += """- trend_score (integer 1-10)
+- justification (string)
+- suggested_tags (array of strings)"""
+        else:  # maturity
+            instructions += """- maturity_score (integer 1-10)
+- justification (string)
+- suggested_next_steps (array of strings)"""
+        
+        instructions_label = ttk.Label(main_frame, text=instructions, font=("Arial", 9), foreground="gray")
+        instructions_label.grid(row=3, column=0, pady=(0, 10))
+        
+        # Buttons frame
+        buttons_frame = ttk.Frame(main_frame)
+        buttons_frame.grid(row=4, column=0, pady=(0, 10))
+        
+        # Save button
+        def save_assessment():
+            try:
+                # Get JSON content from text widget
+                json_content = text_widget.get(1.0, tk.END).strip()
+                
+                if not json_content:
+                    messagebox.showwarning("Warning", "Please enter JSON content!")
+                    return
+                
+                # Parse JSON
+                assessment_data = json.loads(json_content)
+                
+                # Validate required fields
+                if assessment_type == "trend":
+                    if 'trend_score' not in assessment_data:
+                        raise ValueError("Missing 'trend_score' field in trend assessment")
+                elif assessment_type == "maturity":
+                    if 'maturity_score' not in assessment_data:
+                        raise ValueError("Missing 'maturity_score' field in maturity assessment")
+                
+                # Save the assessment
+                self.save_assessment(idea_id, assessment_type, assessment_data)
+                
+                # Update the scores in the form
+                if assessment_type == "trend" and 'trend_score' in assessment_data:
+                    self.trend_var.set(assessment_data['trend_score'])
+                    self.trend_label.config(text=str(assessment_data['trend_score']))
+                elif assessment_type == "maturity" and 'maturity_score' in assessment_data:
+                    self.maturity_var.set(assessment_data['maturity_score'])
+                    self.maturity_label.config(text=str(assessment_data['maturity_score']))
+                
+                self.status_var.set(f"Updated {assessment_type} assessment for {idea_id}")
+                
+                # Close dialog
+                dialog.destroy()
+                
+            except json.JSONDecodeError as e:
+                messagebox.showerror("JSON Error", f"Invalid JSON format: {str(e)}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to process {assessment_type} assessment: {str(e)}")
+        
+        ttk.Button(buttons_frame, text="💾 Save Assessment", command=save_assessment).pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Cancel button
+        def cancel():
+            dialog.destroy()
+        
+        ttk.Button(buttons_frame, text="❌ Cancel", command=cancel).pack(side=tk.LEFT)
+        
+        # Focus on text widget
+        text_widget.focus_set()
+
+    def view_assessment(self, assessment_type: str):
+        """View an assessment file for the current idea"""
+        if not self.current_idea:
+            messagebox.showwarning("Warning", "No idea selected!")
+            return
+        
+        idea_id = self.current_idea.get('idea_id')
+        if not idea_id:
+            messagebox.showerror("Error", "Idea ID is required!")
+            return
+        
+        assessment_data = self.load_assessment(idea_id, assessment_type)
+        if not assessment_data:
+            messagebox.showinfo("Info", f"No {assessment_type} assessment found for this idea.")
+            return
+        
+        # Create assessment viewer window
+        assessment_window = tk.Toplevel(self.root)
+        assessment_window.title(f"{assessment_type.title()} Assessment - {idea_id}")
+        assessment_window.geometry("800x600")
+        
+        # Configure window
+        assessment_window.columnconfigure(0, weight=1)
+        assessment_window.rowconfigure(0, weight=1)
+        
+        # Create main frame
+        main_frame = ttk.Frame(assessment_window, padding="10")
+        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.rowconfigure(1, weight=1)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text=f"{assessment_type.title()} Assessment", font=("Arial", 14, "bold"))
+        title_label.grid(row=0, column=0, pady=(0, 10))
+        
+        # Text area with scrollbar
+        text_frame = ttk.Frame(main_frame)
+        text_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        text_frame.columnconfigure(0, weight=1)
+        text_frame.rowconfigure(0, weight=1)
+        
+        # Text widget
+        text_widget = scrolledtext.ScrolledText(text_frame, wrap=tk.WORD, font=("Consolas", 10))
+        text_widget.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Display assessment data
+        assessment_text = json.dumps(assessment_data, indent=2, ensure_ascii=False)
+        text_widget.insert(tk.END, assessment_text)
+        text_widget.config(state=tk.DISABLED)  # Make read-only
+        
+        # Buttons frame
+        buttons_frame = ttk.Frame(main_frame)
+        buttons_frame.grid(row=2, column=0, pady=(10, 0))
+        
+        # Copy button
+        def copy_to_clipboard():
+            assessment_window.clipboard_clear()
+            assessment_window.clipboard_append(assessment_text)
+            messagebox.showinfo("Copied", f"{assessment_type.title()} assessment copied to clipboard!")
+        
+        ttk.Button(buttons_frame, text="Copy to Clipboard", command=copy_to_clipboard).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(buttons_frame, text="Close", command=assessment_window.destroy).pack(side=tk.LEFT)
+        
+        # Status
+        status_label = ttk.Label(main_frame, text=f"Showing {assessment_type} assessment for: {idea_id}")
+        status_label.grid(row=3, column=0, pady=(10, 0))
+
     def create_widgets(self):
         """Create the main GUI widgets"""
         # Main frame
@@ -223,36 +469,54 @@ class RepoManager:
         # Scores frame
         scores_frame = ttk.LabelFrame(right_frame, text="Scores", padding="5")
         scores_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
-        scores_frame.columnconfigure(1, weight=1)
-        scores_frame.columnconfigure(3, weight=1)
-        scores_frame.columnconfigure(5, weight=1)
+        scores_frame.columnconfigure(0, weight=1)
         
         # Maturity Score
-        ttk.Label(scores_frame, text="Maturity:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
+        maturity_row = ttk.Frame(scores_frame)
+        maturity_row.grid(row=0, column=0, columnspan=6, sticky=(tk.W, tk.E), pady=2)
+        maturity_row.columnconfigure(1, weight=1)
+        
+        ttk.Label(maturity_row, text="Maturity:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
         self.maturity_var = tk.IntVar()
-        self.maturity_scale = ttk.Scale(scores_frame, from_=1, to=10, variable=self.maturity_var, orient=tk.HORIZONTAL)
+        self.maturity_scale = ttk.Scale(maturity_row, from_=1, to=10, variable=self.maturity_var, orient=tk.HORIZONTAL)
         self.maturity_scale.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
-        self.maturity_label = ttk.Label(scores_frame, text="1")
+        self.maturity_label = ttk.Label(maturity_row, text="1")
         self.maturity_label.grid(row=0, column=2, padx=(0, 10))
         self.maturity_scale.configure(command=self.update_maturity_label)
         
+        # Maturity assessment buttons
+        ttk.Button(maturity_row, text="📊", width=3, command=lambda: self.view_assessment("maturity")).grid(row=0, column=3, padx=(0, 5))
+        ttk.Button(maturity_row, text="📁", width=3, command=lambda: self.upload_assessment("maturity")).grid(row=0, column=4, padx=(0, 5))
+        
         # Personal Interest Score
-        ttk.Label(scores_frame, text="Interest:").grid(row=0, column=3, sticky=tk.W, padx=(0, 5))
+        interest_row = ttk.Frame(scores_frame)
+        interest_row.grid(row=1, column=0, columnspan=6, sticky=(tk.W, tk.E), pady=2)
+        interest_row.columnconfigure(1, weight=1)
+        
+        ttk.Label(interest_row, text="Interest:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
         self.interest_var = tk.IntVar()
-        self.interest_scale = ttk.Scale(scores_frame, from_=1, to=10, variable=self.interest_var, orient=tk.HORIZONTAL)
-        self.interest_scale.grid(row=0, column=4, sticky=(tk.W, tk.E), padx=(0, 10))
-        self.interest_label = ttk.Label(scores_frame, text="1")
-        self.interest_label.grid(row=0, column=5, padx=(0, 10))
+        self.interest_scale = ttk.Scale(interest_row, from_=1, to=10, variable=self.interest_var, orient=tk.HORIZONTAL)
+        self.interest_scale.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
+        self.interest_label = ttk.Label(interest_row, text="1")
+        self.interest_label.grid(row=0, column=2, padx=(0, 10))
         self.interest_scale.configure(command=self.update_interest_label)
         
         # Trend Score
-        ttk.Label(scores_frame, text="Trend:").grid(row=1, column=0, sticky=tk.W, padx=(0, 5), pady=(10, 0))
+        trend_row = ttk.Frame(scores_frame)
+        trend_row.grid(row=2, column=0, columnspan=6, sticky=(tk.W, tk.E), pady=2)
+        trend_row.columnconfigure(1, weight=1)
+        
+        ttk.Label(trend_row, text="Trend:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
         self.trend_var = tk.IntVar()
-        self.trend_scale = ttk.Scale(scores_frame, from_=1, to=10, variable=self.trend_var, orient=tk.HORIZONTAL)
-        self.trend_scale.grid(row=1, column=1, sticky=(tk.W, tk.E), padx=(0, 10), pady=(10, 0))
-        self.trend_label = ttk.Label(scores_frame, text="1")
-        self.trend_label.grid(row=1, column=2, padx=(0, 10), pady=(10, 0))
+        self.trend_scale = ttk.Scale(trend_row, from_=1, to=10, variable=self.trend_var, orient=tk.HORIZONTAL)
+        self.trend_scale.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
+        self.trend_label = ttk.Label(trend_row, text="1")
+        self.trend_label.grid(row=0, column=2, padx=(0, 10))
         self.trend_scale.configure(command=self.update_trend_label)
+        
+        # Trend assessment buttons
+        ttk.Button(trend_row, text="📊", width=3, command=lambda: self.view_assessment("trend")).grid(row=0, column=3, padx=(0, 5))
+        ttk.Button(trend_row, text="📁", width=3, command=lambda: self.upload_assessment("trend")).grid(row=0, column=4, padx=(0, 5))
         
         # Tags
         ttk.Label(right_frame, text="Tags:").grid(row=4, column=0, sticky=tk.W, pady=2)
@@ -334,6 +598,21 @@ class RepoManager:
         self.related_items_text.delete(1.0, tk.END)
         related_items = idea.get('related_items', [])
         self.related_items_text.insert(1.0, json.dumps(related_items, indent=2))
+        
+        # Load existing assessments if available
+        idea_id = idea.get('idea_id', '')
+        if idea_id:
+            # Check for maturity assessment
+            maturity_assessment = self.load_assessment(idea_id, "maturity")
+            if maturity_assessment and 'maturity_score' in maturity_assessment:
+                self.maturity_var.set(maturity_assessment['maturity_score'])
+                self.maturity_label.config(text=str(maturity_assessment['maturity_score']))
+            
+            # Check for trend assessment
+            trend_assessment = self.load_assessment(idea_id, "trend")
+            if trend_assessment and 'trend_score' in trend_assessment:
+                self.trend_var.set(trend_assessment['trend_score'])
+                self.trend_label.config(text=str(trend_assessment['trend_score']))
 
     def clear_form(self):
         """Clear all form fields"""

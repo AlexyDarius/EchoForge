@@ -16,6 +16,7 @@ A Python Tkinter GUI application for managing your EchoForge idea repository (`r
 - **Save Changes**: Save modifications to the repository file
 - **Real-time Updates**: See changes immediately in the interface
 - **View Sources**: Link back to original source information from JSON logs and markdown files
+- **AI Assessments**: Upload external AI-generated assessments for trend and maturity scores
 
 ## Project Structure
 
@@ -107,6 +108,7 @@ python repo_manager.py
 - **Tags**: Comma-separated list of tags
 - **Related Items**: JSON array of related items (week, item_id, section)
 - **View Sources**: Button to see all original source information from JSON logs and markdown files
+- **Assessment Buttons**: 📊 to view AI assessments, 📁 to upload new assessments
 
 ### Working with Ideas
 
@@ -132,6 +134,15 @@ python repo_manager.py
    - Full markdown context from the week
    - Week metadata (tools used, tags, generation date)
 4. Use "Copy to Clipboard" to copy the source information
+
+#### Working with AI Assessments
+1. **Add Assessment**: Click 📁 next to Maturity or Trend score
+2. **Choose input method**:
+   - **📁 Upload JSON File**: Select a JSON file from your computer
+   - **Paste JSON**: Copy-paste JSON content directly from your AI tool
+3. **Score updates automatically** when valid assessment is saved
+4. **View Assessment**: Click 📊 to see full assessment details
+5. **Overwrite previous** assessments for the same idea and type
 
 #### Deleting an Idea
 1. Select the idea to delete
