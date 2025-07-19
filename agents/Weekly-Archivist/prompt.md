@@ -11,8 +11,8 @@ Instructions:
 3. Assign a short, unique `id` to each item using the following prefixes:
    - `e` for experiments, `c` for coding, `s` for systems engineering, `ci` for content ideas, `n` for notes
    - Use a numeric suffix, starting at 1 (e.g., e1, c1, s1...)
-4. Output a valid JSON file that strictly follows the structure defined in `schema.json`.
-5. Use `example.json` as a formatting reference for how the output should look.
+4. Output a valid JSON file that strictly follows the structure defined in `weekly.schema.json`.
+5. Use `weekly.example.json` as a formatting reference for how the output should look.
 6. Ensure fields like `week`, `date_range`, and `metadata` are populated. Use placeholders or realistic values if not specified in the Markdown.
 
 **Output destination and filename:**

@@ -1,0 +1,43 @@
+[
+    {
+      "idea_id": "I-AI-SE-Agents",
+      "title": "AI-Agent Support for Systems Engineering",
+      "description": "Using LLM agents to assist or automate steps in SE workflows, including architecture, requirements handling, and traceability.",
+      "related_items": [
+        {
+          "week": "2025-W29",
+          "item_id": "e1",
+          "section": "experiments_and_research"
+        },
+        {
+          "week": "2025-W31",
+          "item_id": "e3",
+          "section": "experiments_and_research"
+        }
+      ],
+      "maturity_score": 2,
+      "interest_score": 5,
+      "tags": ["systems_engineering", "ai", "agents", "workflows"]
+    },
+    {
+      "idea_id": "I-FuelCell-API-Gateway",
+      "title": "Fuel Cell Tooling API Gateway",
+      "description": "Building a unified API layer for internal fuel-cell simulation and management tools at H3 Dynamics.",
+      "related_items": [
+        {
+          "week": "2025-W29",
+          "item_id": "c1",
+          "section": "coding_and_projects"
+        },
+        {
+          "week": "2025-W30",
+          "item_id": "c3",
+          "section": "coding_and_projects"
+        }
+      ],
+      "maturity_score": 3,
+      "interest_score": 4,
+      "tags": ["api", "architecture", "internal_tooling"]
+    }
+  ]
+  

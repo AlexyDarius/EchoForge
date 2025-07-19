@@ -1,0 +1,165 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["week", "date_range", "items", "metadata"],
+  "properties": {
+    "week": {
+      "type": "string",
+      "description": "Week identifier in format YYYY-W## (e.g., '2025-W29')",
+      "pattern": "^\\d{4}-W\\d{2}$"
+    },
+    "date_range": {
+      "type": "string",
+      "description": "Date range in ISO or friendly format",
+      "minLength": 1
+    },
+    "items": {
+      "type": "object",
+      "required": [
+        "experiments_and_research",
+        "coding_and_projects",
+        "systems_engineering_work",
+        "content_ideas",
+        "notes_and_observations"
+      ],
+      "properties": {
+        "experiments_and_research": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "text"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique identifier for the item",
+                "minLength": 1
+              },
+              "text": {
+                "type": "string",
+                "description": "Content text for the item",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "coding_and_projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "text"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique identifier for the item",
+                "minLength": 1
+              },
+              "text": {
+                "type": "string",
+                "description": "Content text for the item",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "systems_engineering_work": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "text"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique identifier for the item",
+                "minLength": 1
+              },
+              "text": {
+                "type": "string",
+                "description": "Content text for the item",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "content_ideas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "text"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique identifier for the item",
+                "minLength": 1
+              },
+              "text": {
+                "type": "string",
+                "description": "Content text for the item",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "notes_and_observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "text"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique identifier for the item",
+                "minLength": 1
+              },
+              "text": {
+                "type": "string",
+                "description": "Content text for the item",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["tools_used", "tags", "source", "generated_at"],
+      "properties": {
+        "tools_used": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Array of tools used during the week"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Array of tags for the week"
+        },
+        "source": {
+          "type": "string",
+          "description": "Source of the weekly data",
+          "minLength": 1
+        },
+        "generated_at": {
+          "type": "string",
+          "description": "ISO timestamp when the data was generated",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
+  
